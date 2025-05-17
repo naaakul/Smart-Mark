@@ -4,7 +4,7 @@
   <title>MCQ Auto-Answerer</title>
   <style>
     body {
-      width: 250px;
+      width: 300px;
       padding: 15px;
       font-family: Arial, sans-serif;
     }
@@ -75,6 +75,37 @@
       margin-top: 10px;
       color: #666;
     }
+    .api-key-section {
+      margin-top: 20px;
+      width: 100%;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+    .api-key-section label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .api-key-section input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .api-key-section button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .api-key-section button:hover {
+      background-color: #3367d6;
+    }
     .note {
       font-size: 12px;
       color: #999;
@@ -96,6 +127,13 @@
       <span class="toggle-label">Auto Answer</span>
     </div>
     <div id="status" class="status">Disabled</div>
+    
+    <div class="api-key-section">
+      <label for="apiKeyInput">Gemini API Key:</label>
+      <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key">
+      <button id="saveApiKeyBtn">Save Key</button>
+    </div>
+    
     <div class="note">For practice tests only. Works on Google Forms.</div>
   </div>
   <script src="popup.js"></script>
