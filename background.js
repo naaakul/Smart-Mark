@@ -1,7 +1,6 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({
     autoAnswerEnabled: false,
-    geminiApiKey: "",
   });
 });
 
@@ -40,7 +39,13 @@ function enableAutoAnswer(tabId) {
         files: ["content.js"],
       });
     })
-    .catch((err) => console.error("Failed to inject scripts:", err));
+    .catch((err) => {
+      console.error("Failed to inject scripts:", err);
+      chrome.runtime.sendMessage({
+        action: "showError",
+        error: "Failed to start auto-answering. Please refresh the page and try again."
+      });
+    });
   console.log("Enabling auto answer for tab:", tabId);
 }
 

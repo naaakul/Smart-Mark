@@ -1,25 +1,11 @@
 class GeminiHelper {
-  constructor(apiKey) {
-    this.apiKey = apiKey || "AIzaSyB8JaIwQwiBjc-W5V0MtGJAZcO7dOkbfGA";
+  constructor() {
+    // Hard-coded API key as requested
+    this.apiKey = "AIzaSyB8JaIwQwiBjc-W5V0MtGJAZcO7dOkbfGA";
     this.apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
-  }
-
-  setApiKey(apiKey) {
-    this.apiKey = apiKey;
-
-    chrome.storage.local.set({ geminiApiKey: apiKey });
   }
 
   async getAnswerForMCQ(question, options) {
-    if (!this.apiKey) {
-      const storedKey = await this.getStoredApiKey();
-      if (!storedKey) {
-        throw new Error("No API key configured");
-      }
-      this.apiKey = storedKey;
-    }
-
     const prompt = this.formatPrompt(question, options);
 
     try {
@@ -47,9 +33,23 @@ class GeminiHelper {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Gemini API error: ${errorData.error?.message || "Unknown error"}`
-        );
+        let errorMessage = "An error occurred with the AI service";
+        
+        if (errorData.error) {
+          if (errorData.error.code === 403) {
+            errorMessage = "API key is invalid or has exceeded its quota";
+          } else if (errorData.error.message) {
+            errorMessage = `Error: ${errorData.error.message}`;
+          }
+        }
+        
+        // Send error to popup
+        chrome.runtime.sendMessage({
+          action: "showError",
+          error: errorMessage
+        });
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -58,10 +58,24 @@ class GeminiHelper {
         const answer = data.candidates[0].content.parts[0].text;
         return this.findBestOptionMatch(answer, options);
       } else {
-        throw new Error("No response from Gemini API");
+        const errorMessage = "No response from AI service";
+        chrome.runtime.sendMessage({
+          action: "showError",
+          error: errorMessage
+        });
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Error calling Gemini API:", error);
+      
+      // If we haven't already sent an error message, send a generic one
+      if (!error.message.includes("API key") && !error.message.includes("No response")) {
+        chrome.runtime.sendMessage({
+          action: "showError",
+          error: "Connection error or service unavailable. Please try again."
+        });
+      }
+      
       throw error;
     }
   }
@@ -76,14 +90,6 @@ class GeminiHelper {
     ${options.map((opt, i) => `${i + 1}. ${opt}`).join("\n")}
     
     Please respond with ONLY the exact text of the correct option, no explanations or additional text.`;
-  }
-
-  async getStoredApiKey() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(["geminiApiKey"], (result) => {
-        resolve(result.geminiApiKey || "");
-      });
-    });
   }
 
   findBestOptionMatch(apiResponse, options) {
