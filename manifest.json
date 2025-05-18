@@ -11,14 +11,8 @@
       "128": "images/icon128.png"
     }
   },
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "host_permissions": [
-    "https://*.google.com/*"
-  ],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://*.google.com/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -30,7 +24,7 @@
   "web_accessible_resources": [
     {
       "resources": ["gemini-helper.js"],
-      "matches": ["https://*.google.com/*"]
+      "matches": ["<all_urls>"]
     }
   ]
 }
