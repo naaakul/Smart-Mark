@@ -52,6 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (message.completed) {
         updateButtonState(false);
         chrome.storage.local.set({ autoAnswerEnabled: false });
+        statusText.textContent = "Quiz completed successfully!";
       }
     } else if (message.action === "showError") {
       showError(message.error);

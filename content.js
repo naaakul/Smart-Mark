@@ -111,9 +111,13 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
                 this.questionsAnswered++;
                 this.sendStatusUpdate(`Answered ${this.questionsAnswered} of ${this.totalQuestions}`);
                 
-                // If we've answered all questions, auto-disable
+                // If we've answered all questions, auto-disable and open the website
                 if (this.questionsAnswered >= this.totalQuestions) {
                   this.sendStatusUpdate("All questions answered", true);
+                  // Open nakul.space in a new tab
+                  chrome.runtime.sendMessage({
+                    action: "openSuccessPage"
+                  });
                   this.disable();
                 }
               }
