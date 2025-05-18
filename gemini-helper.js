@@ -1,8 +1,8 @@
 class GeminiHelper {
   constructor(apiKey) {
-    this.apiKey = apiKey || "AIzaSyCTJhvQmQr42NLOwUkoBWvMyEmu6fhYrnQ";
-    this.apiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    this.apiKey = apiKey || "AIzaSyB8JaIwQwiBjc-W5V0MtGJAZcO7dOkbfGA";
+    this.apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
   }
 
   setApiKey(apiKey) {
@@ -38,6 +38,10 @@ class GeminiHelper {
               ],
             },
           ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 100,
+          },
         }),
       });
 
