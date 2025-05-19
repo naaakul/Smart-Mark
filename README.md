@@ -25,7 +25,7 @@
 
 ## 🛠️ Installation
 
-1. Clone this repo or [Download ZIP](https://github.com/naaakul/Smart-Mark.git)
+1. Clone this repo or [Download ZIP](https://github.com/naaakul/Smart-Mark/archive/refs/heads/master.zip)
 2. Go to `chrome://extensions/` in your browser.
 3. Enable **Developer Mode**.
 4. Click on **Load unpacked** and select the `smart-mark` folder.
