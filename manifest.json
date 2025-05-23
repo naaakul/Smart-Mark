@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Smart Mark",
   "description": "Auto-answers multiple-choice questions in Google Forms for practice",
-  "version": "1.2.5",
+  "version": "2.0.0",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -11,8 +11,16 @@
       "128": "images/icon128.png"
     }
   },
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["https://*.google.com/*"],
+  "permissions": [
+    "activeTab", 
+    "scripting", 
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://*.google.com/*",
+    "https://*.googleapis.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -26,5 +34,8 @@
       "resources": ["gemini-helper.js"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
 }

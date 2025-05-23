@@ -11,32 +11,53 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
       this.geminiHelper = null;
       this.questionsAnswered = 0;
       this.totalQuestions = 0;
+      this.processingDelay = 2000;
+
+      if (!this.isGoogleForm()) {
+        this.sendError("Extension only works on Google Forms");
+        this.disable();
+        return;
+      }
 
       this.initGeminiHelper()
         .then(() => {
           this.setupListeners();
           this.startObserver();
 
-          // Scan for questions
-          this.totalQuestions = this.getQuestionContainers().length;
-          
-          if (this.totalQuestions === 0) {
-            this.sendStatusUpdate("No questions found on this page", true);
-            this.disable();
-            return;
-          }
-          
-          this.sendStatusUpdate(`Found ${this.totalQuestions} questions`);
-          this.processVisibleQuestions();
+          setTimeout(() => {
+            this.totalQuestions = this.getQuestionContainers().length;
+
+            if (this.totalQuestions === 0) {
+              this.sendStatusUpdate(
+                "No questions found. Make sure the form is fully loaded.",
+                true
+              );
+              this.disable();
+              return;
+            }
+
+            this.sendStatusUpdate(`Found ${this.totalQuestions} questions`);
+            this.processVisibleQuestions();
+          }, 1000);
 
           console.log("MCQ Auto-Answerer initialized");
         })
         .catch((err) => {
           console.error("Failed to initialize MCQ Auto-Answerer:", err);
-          this.sendError("Failed to start: " + (err.message || "Unknown error"));
+          this.sendError(
+            "Failed to start: " + (err.message || "Unknown error")
+          );
           this.disable();
         });
       console.log("MCQAutoAnswerer initializing...");
+    }
+
+    isGoogleForm() {
+      return (
+        window.location.href.includes("docs.google.com/forms") ||
+        window.location.href.includes("forms.google.com") ||
+        window.location.href.includes("forms.gle")
+      );
     }
 
     initGeminiHelper() {
@@ -61,11 +82,14 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
     startObserver() {
       this.observer = new MutationObserver(() => {
         if (this.enabled && !this.processingQuestion) {
-          this.processVisibleQuestions();
+          clearTimeout(this.observerTimeout);
+          this.observerTimeout = setTimeout(() => {
+            this.processVisibleQuestions();
+          }, 500);
         }
       });
 
-      const formContent = document.querySelector("form");
+      const formContent = document.querySelector("form") || document.body;
       if (formContent) {
         this.observer.observe(formContent, this.observerConfig);
       }
@@ -76,7 +100,7 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
 
       const questionContainers = this.getQuestionContainers();
       const totalQuestionsNow = questionContainers.length;
-      
+
       if (totalQuestionsNow > this.totalQuestions) {
         this.totalQuestions = totalQuestionsNow;
         this.sendStatusUpdate(`Found ${this.totalQuestions} questions`);
@@ -85,6 +109,8 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
       let processedThisRound = 0;
 
       for (const container of questionContainers) {
+        if (!this.enabled) break;
+
         const questionElement = container.querySelector("[data-params]");
         if (!questionElement) continue;
 
@@ -94,32 +120,50 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
         const { question, options } = this.extractQuestionData(container);
         if (!question || options.length === 0) continue;
 
+        if (this.isQuestionAnswered(container)) {
+          this.processedQuestions.add(questionId);
+          continue;
+        }
+
         this.processingQuestion = true;
         this.processedQuestions.add(questionId);
 
         try {
           if (this.geminiHelper) {
+            this.sendStatusUpdate(
+              `Processing question ${this.questionsAnswered + 1} of ${
+                this.totalQuestions
+              }...`
+            );
+
             try {
               const correctOptionText = await this.geminiHelper.getAnswerForMCQ(
                 question,
                 options
               );
-              
-              if (correctOptionText) {
+
+              if (correctOptionText && this.enabled) {
                 this.selectCorrectOption(container, correctOptionText);
                 processedThisRound++;
                 this.questionsAnswered++;
-                this.sendStatusUpdate(`Answered ${this.questionsAnswered} of ${this.totalQuestions}`);
-                
-                // If we've answered all questions, auto-disable and open the website
+                this.sendStatusUpdate(
+                  `Answered ${this.questionsAnswered} of ${this.totalQuestions}`
+                );
+
                 if (this.questionsAnswered >= this.totalQuestions) {
-                  this.sendStatusUpdate("All questions answered", true);
-                  // Open nakul.space in a new tab
+                  this.sendStatusUpdate(
+                    "All questions answered successfully!",
+                    true
+                  );
+
                   chrome.runtime.sendMessage({
-                    action: "openSuccessPage"
+                    action: "openSuccessPage",
                   });
                   this.disable();
+                  return;
                 }
+
+                await this.delay(this.processingDelay);
               }
             } catch (apiError) {
               console.error("Error using Gemini API:", apiError);
@@ -140,15 +184,39 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
           this.processingQuestion = false;
         }
       }
-      
-      // If we didn't process any questions and there are unanswered ones, wait and try again
-      if (processedThisRound === 0 && this.questionsAnswered < this.totalQuestions) {
+
+      if (
+        processedThisRound === 0 &&
+        this.questionsAnswered < this.totalQuestions &&
+        this.enabled
+      ) {
         setTimeout(() => {
           if (this.enabled) {
             this.processVisibleQuestions();
           }
-        }, 1000);
+        }, 3000);
       }
+    }
+
+    delay(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    isQuestionAnswered(container) {
+      const selectedRadio = container.querySelector(
+        'input[type="radio"]:checked'
+      );
+      if (selectedRadio) return true;
+
+      const selectedCheckbox = container.querySelector(
+        'input[type="checkbox"]:checked'
+      );
+      if (selectedCheckbox) return true;
+
+      const textInput = container.querySelector('input[type="text"], textarea');
+      if (textInput && textInput.value.trim()) return true;
+
+      return false;
     }
 
     getQuestionContainers() {
@@ -214,7 +282,7 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
           const optionText = option.textContent.trim();
           return optionText;
         })
-        .filter((text) => text);
+        .filter((text) => text && text.length > 0);
 
       console.log("Extracted question:", question);
       console.log("Extracted options:", options);
@@ -230,7 +298,7 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
 
         if (this.isTextSimilar(labelText, correctOptionText)) {
           const input = label.querySelector('input[type="radio"]');
-          if (input) {
+          if (input && !input.checked) {
             input.click();
             console.log("Selected answer:", labelText);
             clicked = true;
@@ -252,18 +320,27 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
                 ".freebirdFormviewerComponentsQuestionRadioChoiceContainer"
               ) ||
               option;
-            clickable.click();
-            console.log("Selected alternative answer:", optionText);
-            break;
+            if (clickable) {
+              clickable.click();
+              console.log("Selected alternative answer:", optionText);
+              clicked = true;
+              break;
+            }
           }
         }
+      }
+
+      if (!clicked) {
+        console.warn("Could not find matching option for:", correctOptionText);
       }
     }
 
     isTextSimilar(text1, text2) {
+      const clean1 = text1.toLowerCase().trim();
+      const clean2 = text2.toLowerCase().trim();
+
       return (
-        text1.toLowerCase().includes(text2.toLowerCase()) ||
-        text2.toLowerCase().includes(text1.toLowerCase())
+        clean1.includes(clean2) || clean2.includes(clean1) || clean1 === clean2
       );
     }
 
@@ -271,14 +348,14 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
       chrome.runtime.sendMessage({
         action: "updateStatus",
         status: message,
-        completed: completed
+        completed: completed,
       });
     }
-    
+
     sendError(message) {
       chrome.runtime.sendMessage({
-        action: "showError", 
-        error: message
+        action: "showError",
+        error: message,
       });
     }
 
@@ -286,6 +363,9 @@ if (typeof window.mcqAutoAnswererRunning === "undefined") {
       this.enabled = false;
       if (this.observer) {
         this.observer.disconnect();
+      }
+      if (this.observerTimeout) {
+        clearTimeout(this.observerTimeout);
       }
       console.log("MCQ Auto-Answerer disabled");
     }
