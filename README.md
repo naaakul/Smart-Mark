@@ -14,6 +14,29 @@
 
 ---
 
+## 📸 Screenshots
+
+1. **Landing Page of Smart Mark Extension**  
+   ![Landing Page](images/so1.png)
+
+2. **Enable Developer Mode**  
+   Pointing to the **Developer mode** toggle in the browser.  
+   ![Developer Mode](images/so2.png)
+
+3. **Click on "Load Unpacked"**  
+   Pointing to the **Load unpacked** button.  
+   ![Load Unpacked](images/so3.png)
+
+4. **Extension Loaded Successfully**  
+   Showing the Smart Mark extension visible in `brave://extensions`.  
+   ![Extension Loaded](images/so4.png)
+
+5. **Start Auto Answering**  
+   Pointing to the Smart Mark button and the automatically selected answer option.  
+   ![Start Auto Answer](images/so5.png)
+
+---
+
 ## 🔧 How It Works
 
 1. Detects multiple-choice questions from quiz forms.
