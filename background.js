@@ -9,9 +9,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     enableAutoAnswer(message.tabId);
   } else if (message.action === "disableAutoAnswer") {
     disableAutoAnswer(message.tabId);
-  } else if (message.action === "openSuccessPage") {
-    // Open nakul.space in a new tab when all questions are answered
-    chrome.tabs.create({ url: "https://nakul.space", active: false });
+  } else if (message.action === "updateStatus" && message.completed) {
+    // Close the popup when all questions are answered
+    chrome.action.setPopup({ popup: "" });
+    // Reset popup after a short delay
+    setTimeout(() => {
+      chrome.action.setPopup({ popup: "popup.html" });
+    }, 1000);
   }
   return true;
 });
